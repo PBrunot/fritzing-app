@@ -118,14 +118,11 @@ jobs:
         cmake -G "Visual Studio 16 2019" -A x64 -DBUILD_SHARED_LIBS=ON -DBUILD_CLAR=OFF ../
         cmake --build . --config Release
 
-    - name: Set up Visual Studio environment for build
-      shell: cmd
-      run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
-    
     - name: Build Fritzing in Qt
       shell: cmd
       run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+        set PATH="%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.29.30133\bin\Hostx64\x64"
         cd fritzing-app
         qmake -r CONFIG+=release
         mingw32-make
