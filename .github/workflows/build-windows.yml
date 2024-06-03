@@ -49,8 +49,7 @@ jobs:
         install-deps: 'true'
         arch: 'win64_msvc2019_64'
         target: 'desktop'
-        host: 'windows'
-        modules: 'qtbase,qttools'        
+        host: 'windows'     
   
     - name: Set up Visual Studio environment
       shell: cmd
@@ -116,7 +115,7 @@ jobs:
       run: |
         mkdir libgit2\build64
         cd libgit2\build64
-        cmake -G "Visual Studio 16 2019" -A x64 ../
+        cmake -G "Visual Studio 16 2019" -A x64 -DBUILD_SHARED_LIBS=ON -DBUILD_CLAR=OFF ../
         cmake --build . --config Release
 
     - name: Set up Visual Studio environment for build
