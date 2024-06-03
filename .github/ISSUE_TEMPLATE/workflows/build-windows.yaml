@@ -1,0 +1,124 @@
+name: Build Fritzing Installer
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - build-release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+
+    - name: Install Chocolatey
+      run: |
+        set PATH=%PATH%;C:\ProgramData\chocolatey\bin
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+        Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
+
+    - name: Install dependencies via Chocolatey
+      run: |
+        choco install -y visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --includeOptional"
+        choco install -y qt5 --version=5.15.2
+        choco install -y git
+        choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+        choco install -y nsis
+
+    - name: Set up Visual Studio environment
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+
+    - name: Cache Boost
+      id: boost-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          boost_1_76_0
+        key: boost-${{ runner.os }}-1.76.0
+        restore-keys: |
+          boost-${{ runner.os }}-
+
+    - name: Cache Libgit2
+      id: libgit2-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          libgit2
+        key: libgit2-${{ runner.os }}-1.1.1
+        restore-keys: |
+          libgit2-${{ runner.os }}-
+
+    - name: Cache CMake
+      id: cmake-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          C:\Program Files\CMake
+        key: cmake-${{ runner.os }}-3.20.0
+        restore-keys: |
+          cmake-${{ runner.os }}-
+
+    - name: Clone Fritzing repositories
+      run: |
+        git clone https://github.com/fritzing/fritzing-app.git
+        git clone https://github.com/fritzing/fritzing-parts.git
+
+    - name: Download and extract Boost
+      if: steps.boost-cache.outputs.cache-hit != 'true'
+      run: |
+        Invoke-WebRequest -Uri https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.zip -OutFile boost.zip
+        Expand-Archive -Path boost.zip -DestinationPath boost
+
+    - name: Download and extract Libgit2
+      if: steps.libgit2-cache.outputs.cache-hit != 'true'
+      run: |
+        Invoke-WebRequest -Uri https://github.com/libgit2/libgit2/archive/refs/tags/v1.1.1.zip -OutFile libgit2.zip
+        Expand-Archive -Path libgit2.zip -DestinationPath libgit2
+        Rename-Item -Path libgit2\libgit2-1.1.1 -NewName libgit2
+
+    - name: Build Libgit2
+      if: steps.libgit2-cache.outputs.cache-hit != 'true'
+      shell: cmd
+      run: |
+        mkdir libgit2\build64
+        cd libgit2\build64
+        cmake -G "Visual Studio 16 2019" -A x64 ..
+        cmake --build . --config Release
+
+    - name: Build Fritzing in Qt
+      shell: cmd
+      run: |
+        cd fritzing-app
+        qmake -r CONFIG+=release
+        mingw32-make
+
+    - name: Modify release script
+      shell: cmd
+      run: |
+        cd fritzing-app\tools
+        powershell -Command "(gc release_fritzing.bat) -replace 'set QTBIN=.*', 'set QTBIN=C:\Qt\5.15.2\msvc2019_64\bin' | Out-File -encoding ASCII release_fritzing.bat"
+
+    - name: Run release script
+      shell: cmd
+      run: |
+        cd fritzing-app\tools
+        release_fritzing.bat 0.9 64 2019
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FritzingInstaller
+        path: C:\Users\runneradmin\fritzing\release64\deploy
