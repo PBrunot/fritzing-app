@@ -103,21 +103,20 @@ jobs:
         cd libgit2\build64
         cmake -G "Visual Studio 16 2019" -A x64 ../
         cmake --build . --config Release
+    
+    - name: Find Qt installation path
+      id: find-qt-path
+      shell: powershell
+      run: |
+        $qtPath = (Get-ChildItem -Directory "C:\ProgramData\chocolatey\lib\qt5*" | Select-Object -First 1).FullName
+        Write-Output "::set-output name=QT_PATH::$qtPath"
 
     - name: Set up Qt environment
       shell: cmd
       run: |
-        setx QTDIR C:\Qt\5.15.2\msvc2019_64
+        setx QTDIR ${{ steps.find-qt-path.outputs.QT_PATH }}\tools\qt5
         setx PATH "%QTDIR%\bin;%PATH%"
         refreshenv
-  
-    - name: check directory Qt
-      shell: cmd
-      run: dir C:\Qt\5.15.2
-
-    - name: check directory Qt
-      shell: cmd
-      run: dir C:\Qt\5.15.2\msvc2019_64
 
     - name: Build Fritzing in Qt
       shell: cmd
