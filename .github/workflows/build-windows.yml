@@ -47,7 +47,7 @@ jobs:
         version: 5.15.2
         dir: '${{ github.workspace }}/qt/'
         install-deps: 'true'
-        arch: 'win64_mingw73'
+        arch: 'win64_msvc2019_64'
         target: 'desktop'
         host: 'windows'
         modules: 'qtbase,qttools'        
