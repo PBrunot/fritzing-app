@@ -32,32 +32,15 @@ jobs:
     - name: Install dependencies via Chocolatey
       run: |
         choco install -y visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --includeOptional"
-        choco install -y qt5 --version=5.15.2
         choco install -y git
         choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
         choco install -y nsis
 
-    - name: Find Qt installation path
-      id: find-qt-path
-      shell: powershell
-      run: |
-        $qtPath = (Get-ChildItem -Directory "C:\ProgramData\chocolatey\lib\qt5*" | Select-Object -First 1).FullName
-        Write-Output "::set-output name=QT_PATH::$qtPath"
-  
-    - name: Set up Qt environment
-      shell: cmd
-      run: |
-        setx QTDIR ${{ steps.find-qt-path.outputs.QT_PATH }}\tools\qt5
-        setx PATH "%QTDIR%\bin;%PATH%"
-        refreshenv
-          
-    - name: echo paths
-      shell: cmd
-      run: |
-        echo %QTDIR%
-        echo %QT_PATH%
-        echo %PATH%
-        dir %QT_PATH%
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: 5.15.2
+        dir: '${{ github.workspace }}/qt/'
   
     - name: Set up Visual Studio environment
       shell: cmd
