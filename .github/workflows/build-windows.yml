@@ -1,6 +1,7 @@
 name: Build Fritzing Installer
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - develop
@@ -23,11 +24,11 @@ jobs:
         update: true
 
     - name: Install Chocolatey
+      shell: cmd
       run: |
         set PATH=%PATH%;C:\ProgramData\chocolatey\bin
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression
-
+        @powershell -NoProfile -ExecutionPolicy Bypass -Command "Invoke-WebRequest https://chocolatey.org/install.ps1 -UseBasicParsing | Invoke-Expression"
+  
     - name: Install dependencies via Chocolatey
       run: |
         choco install -y visualstudio2019buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --includeOptional"
@@ -87,7 +88,12 @@ jobs:
       run: |
         Invoke-WebRequest -Uri https://github.com/libgit2/libgit2/archive/refs/tags/v1.1.1.zip -OutFile libgit2.zip
         Expand-Archive -Path libgit2.zip -DestinationPath libgit2
-        Rename-Item -Path libgit2\libgit2-1.1.1 -NewName libgit2
+
+    - name: Move Libgit2 files
+      if: steps.libgit2-cache.outputs.cache-hit != 'true'
+      run: |
+        Move-Item -Path libgit2\libgit2-1.1.1\* -Destination libgit2 -Force
+        Remove-Item -Path libgit2\libgit2-1.1.1 -Recurse
 
     - name: Build Libgit2
       if: steps.libgit2-cache.outputs.cache-hit != 'true'
@@ -95,14 +101,29 @@ jobs:
       run: |
         mkdir libgit2\build64
         cd libgit2\build64
-        cmake -G "Visual Studio 16 2019" -A x64 ..
+        cmake -G "Visual Studio 16 2019" -A x64 ../
         cmake --build . --config Release
+
+    - name: Set up Qt environment
+      shell: cmd
+      run: |
+        setx QTDIR C:\Qt\5.15.2\msvc2019_64
+        setx PATH "%QTDIR%\bin;%PATH%"
+        refreshenv
+  
+    - name: check directory Qt
+      shell: cmd
+      run: dir C:\Qt\5.15.2
+
+    - name: check directory Qt
+      shell: cmd
+      run: dir C:\Qt\5.15.2\msvc2019_64
 
     - name: Build Fritzing in Qt
       shell: cmd
       run: |
         cd fritzing-app
-        qmake -r CONFIG+=release
+        C:\Qt\5.15.2\msvc2019_64\qmake -r CONFIG+=release
         mingw32-make
 
     - name: Modify release script
