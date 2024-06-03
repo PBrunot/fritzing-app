@@ -43,8 +43,6 @@ jobs:
         dir: '${{ github.workspace }}/qt/'
         install-deps: 'true'
         arch: 'win64_mingw73'
-        target: 'desktop'
-        host: 'windows'
   
     - name: Set up Visual Studio environment
       shell: cmd
