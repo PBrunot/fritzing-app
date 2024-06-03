@@ -122,14 +122,14 @@ jobs:
       shell: cmd
       run: |
         cd fritzing-app
-        C:\Qt\5.15.2\msvc2019_64\qmake -r CONFIG+=release
+        qmake -r CONFIG+=release
         mingw32-make
 
     - name: Modify release script
       shell: cmd
       run: |
         cd fritzing-app\tools
-        powershell -Command "(gc release_fritzing.bat) -replace 'set QTBIN=.*', 'set QTBIN=C:\Qt\5.15.2\msvc2019_64\bin' | Out-File -encoding ASCII release_fritzing.bat"
+        powershell -Command "(gc release_fritzing.bat) -replace 'set QTBIN=.*', 'set QTBIN=%QTDIR%\bin' | Out-File -encoding ASCII release_fritzing.bat"
 
     - name: Run release script
       shell: cmd
