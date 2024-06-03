@@ -37,6 +37,28 @@ jobs:
         choco install -y cmake --installargs 'ADD_CMAKE_TO_PATH=System'
         choco install -y nsis
 
+    - name: Find Qt installation path
+      id: find-qt-path
+      shell: powershell
+      run: |
+        $qtPath = (Get-ChildItem -Directory "C:\ProgramData\chocolatey\lib\qt5*" | Select-Object -First 1).FullName
+        Write-Output "::set-output name=QT_PATH::$qtPath"
+  
+    - name: Set up Qt environment
+      shell: cmd
+      run: |
+        setx QTDIR ${{ steps.find-qt-path.outputs.QT_PATH }}\tools\qt5
+        setx PATH "%QTDIR%\bin;%PATH%"
+        refreshenv
+          
+    - name: echo paths
+      shell: cmd
+      run: |
+        echo %QTDIR%
+        echo %QT_PATH%
+        echo %PATH%
+        dir %QT_PATH%
+  
     - name: Set up Visual Studio environment
       shell: cmd
       run: |
@@ -104,20 +126,6 @@ jobs:
         cmake -G "Visual Studio 16 2019" -A x64 ../
         cmake --build . --config Release
     
-    - name: Find Qt installation path
-      id: find-qt-path
-      shell: powershell
-      run: |
-        $qtPath = (Get-ChildItem -Directory "C:\ProgramData\chocolatey\lib\qt5*" | Select-Object -First 1).FullName
-        Write-Output "::set-output name=QT_PATH::$qtPath"
-
-    - name: Set up Qt environment
-      shell: cmd
-      run: |
-        setx QTDIR ${{ steps.find-qt-path.outputs.QT_PATH }}\tools\qt5
-        setx PATH "%QTDIR%\bin;%PATH%"
-        refreshenv
-
     - name: Build Fritzing in Qt
       shell: cmd
       run: |
